@@ -11,6 +11,7 @@ jupyter nbconvert --to notebook --execute --inplace cross_market_decision.ipynb 
 jupyter nbconvert --to notebook --execute --inplace draft_data.ipynb              # about 2 min
 jupyter nbconvert --to notebook --execute --inplace lear_new_data.ipynb           # regret part, from saved forecasts
 cd .. && python -m pytest tests/                                                    # checks the shared helpers
+python scripts/generate_tables.py                                                   # thesis Tables 4.1-4.8 as LaTeX, about 1 min
 ```
 
 The notebooks read the benchmark forecasts from `model_outputs/benchmark_forecasts/` and write figures to `figures/`.
@@ -25,6 +26,7 @@ The notebooks read the benchmark forecasts from `model_outputs/benchmark_forecas
 | `notebooks/lear_new_data.ipynb` | ENTSO-E 2022–2023 extension with one model (AR-LEAR). `RETRAIN = False` loads the saved forecasts; `RETRAIN = True` needs `epftoolbox` and the raw ENTSO-E files. |
 | `notebooks/train_models.ipynb` | LEAR, LightGBM and DNN retraining. Needs `epftoolbox`, the raw Zenodo files, LightGBM and PyTorch; not re-run in this revision. |
 | `notebooks/entso_data_analysis.ipynb` | ENTSO-E 2019–2023 data exploration; needs the raw ENTSO-E files. |
+| `scripts/generate_tables.py` | Writes thesis Tables 4.1 to 4.8 as complete LaTeX `table` environments to `reports/generated_tables/`, ready for `\input{...}`. |
 | `tests/test_decision_utils.py` | Checks the vectorised helpers against an hour-by-hour implementation of the thesis definitions. |
 
 ## Method in one paragraph
