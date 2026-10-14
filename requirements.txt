@@ -1,0 +1,12 @@
+# Decision analysis (notebooks that run from the repository data)
+numpy>=2.0
+pandas>=2.2
+scipy>=1.13
+statsmodels>=0.14
+matplotlib>=3.8
+jupyter
+nbconvert>=7
+pytest>=8
+
+# Only for retraining (train_models.ipynb, lear_new_data.ipynb with RETRAIN = True):
+# epftoolbox (local copy), lightgbm, torch
