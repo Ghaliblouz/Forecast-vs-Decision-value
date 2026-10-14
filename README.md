@@ -10,8 +10,10 @@ cd notebooks
 jupyter nbconvert --to notebook --execute --inplace cross_market_decision.ipynb   # about 1.5 min
 jupyter nbconvert --to notebook --execute --inplace draft_data.ipynb              # about 2 min
 jupyter nbconvert --to notebook --execute --inplace lear_new_data.ipynb           # regret part, from saved forecasts
+jupyter nbconvert --to notebook --execute --inplace continuous_z.ipynb            # §6.1 block hedging, about 4 min
 cd .. && python -m pytest tests/                                                    # checks the shared helpers
 python scripts/generate_tables.py                                                   # thesis Tables 4.1-4.8 as LaTeX, about 1 min
+python scripts/generate_robustness_tables.py                                        # thesis Tables 6.1, 6.2, 6.3, about 10 min
 ```
 
 The notebooks read the benchmark forecasts from `model_outputs/benchmark_forecasts/` and write figures to `figures/`.
@@ -21,12 +23,14 @@ The notebooks read the benchmark forecasts from `model_outputs/benchmark_forecas
 | File | Content |
 |---|---|
 | `notebooks/decision_utils.py` | Shared helpers: predictive distribution (thesis eq. 3.5), forward proxy (eq. 3.6), regret, hedging decisions, Diebold–Mariano test, calibration. Every notebook imports them. |
-| `notebooks/cross_market_decision.ipynb` | Reference analysis, five markets: regret (Table 4.6), DM tests (Tables 4.5 and 4.7), what decides which model wins (tail bias, disagreement hours), rank correlation over 10 models (Table 4.8). |
+| `notebooks/cross_market_decision.ipynb` | Reference analysis, five markets: regret (Table 4.6), DM tests (Tables 4.5 and 4.7), what decides which model wins (tail bias, disagreement hours), rank correlation over 10 models (Table 4.8), Holm correction, buyer's own criterion. |
+| `notebooks/continuous_z.ipynb` | §6.1: partial hedging with peak and off-peak block products (Rockafellar–Uryasev LP), five markets, regret vs. the binary rules. |
 | `notebooks/draft_data.ipynb` | Exploratory log: data validation, price distributions, error by decile, interval calibration (Table 4.3), Nord Pool regret (Table 4.4) and DM tests. |
 | `notebooks/lear_new_data.ipynb` | ENTSO-E 2022–2023 extension with one model (AR-LEAR). `RETRAIN = False` loads the saved forecasts; `RETRAIN = True` needs `epftoolbox` and the raw ENTSO-E files. |
 | `notebooks/train_models.ipynb` | LEAR, LightGBM and DNN retraining. Needs `epftoolbox`, the raw Zenodo files, LightGBM and PyTorch; not re-run in this revision. |
 | `notebooks/entso_data_analysis.ipynb` | ENTSO-E 2019–2023 data exploration; needs the raw ENTSO-E files. |
 | `scripts/generate_tables.py` | Writes thesis Tables 4.1 to 4.8 as complete LaTeX `table` environments to `reports/generated_tables/`, ready for `\input{...}`. |
+| `scripts/generate_robustness_tables.py` | Writes the Chapter 6 tables: block hedging (6.1), buyer's own criterion (6.2), Holm correction (6.3). |
 | `tests/test_decision_utils.py` | Checks the vectorised helpers against an hour-by-hour implementation of the thesis definitions. |
 
 ## Method in one paragraph
@@ -63,7 +67,15 @@ At each hour the predictive distribution is the point forecast plus the residual
 | Notebooks used absolute paths outside the repository | Paths relative to the repository | `decision_utils.ROOT` |
 | Interpretation cells described results that no longer hold | Rewritten from the new outputs; earlier claims kept with a correction note in `draft_data` | all notebooks |
 
-Not changed in code: feedback point 1.1 (reference [4]) and 1.2 (§6.1 has no notebook) concern the thesis text.
+Not changed in code: feedback point 1.1 (reference [4]) concerns the thesis text.
+
+## Revision of 14 October 2026 (afternoon): robustness checks
+
+| Item | Change | Where |
+|---|---|---|
+| Feedback 1.2: §6.1 result had no notebook | Block hedging with partial cover, full sample, five markets, corrected residual sign and CVaR term of the LP | `continuous_z.ipynb`, `decision_utils.block_hedging` |
+| Feedback of 2 Oct: no multiple-testing correction | Holm correction within each market (11 tests) and over all 55 tests | `cross_market` Section 6 |
+| Feedback of 2 Oct: buyer's own criterion | Models compared on (1 − λ) mean + λ CVaR of the cost paid, moving-block bootstrap | `cross_market` Section 7, `decision_utils.block_bootstrap_diff` |
 
 ## Figures
 
@@ -79,6 +91,8 @@ Not changed in code: feedback point 1.1 (reference [4]) and 1.2 (§6.1 has no no
 | `price_distributions.png`, `seasonal_structure.png` | Benchmark price data |
 | `error_by_decile_NP.png`, `error_by_decile_all.png` | Error by realised-price decile (descriptive; selection-biased for tail claims) |
 | `bias_by_forecast_decile_NP_PJM.png`, `disagreement_NP_PJM.png`, `premium_sensitivity_NP_PJM.png` | NP and PJM detail |
+| `block_hedging_gap.png` | Regret gap under the hourly rule and the two block rules, five markets |
+| `buyer_criterion.png` | Buyer's own criterion vs. regret gap, five markets |
 | `new_period_regret_comparison.png` | ENTSO-E 2022–2023 vs 2016–2018 regret, one model per period |
 
 ## Model outputs
