@@ -66,3 +66,45 @@ def test_dm_test_daily_two_sided():
     assert np.isclose(t, ref.tvalues[0]) and np.isclose(pval, ref.pvalues[0])
     t_swapped, p_swapped = du.dm_test(lb, la, df.index)
     assert np.isclose(t_swapped, -t) and np.isclose(p_swapped, pval)
+
+
+def test_holm_matches_statsmodels():
+    from statsmodels.stats.multitest import multipletests
+    p = np.array([0.001, 0.04, 0.03, 0.2, 0.012, 0.6])
+    np.testing.assert_allclose(du.holm(p), multipletests(p, method="holm")[1])
+
+
+def test_buyer_objective_and_bootstrap():
+    df = du.load_market("NP").iloc[:N_HOURS]
+    f = du.forward_proxy(df["Real price"])
+    cost = du.hedging_costs(df, "DNN Ensemble", f)
+    reg = du.compute_regret(df, "DNN Ensemble", f)
+    p = df["Real price"].loc[cost.index]
+    oracle = np.minimum(f.loc[cost.index], p)
+    # cost paid - oracle cost = regret
+    np.testing.assert_allclose(cost["cost_λ=0.5"] - oracle, reg["regret_λ=0.5"], atol=1e-9)
+    x = cost["cost_λ=1.0"].values
+    tail = x[x >= np.percentile(x, 90)]
+    assert np.isclose(du.buyer_objective(x, 1.0), tail.mean())
+    assert np.isclose(du.buyer_objective(x, 0.0), x.mean())
+    cost_b = du.hedging_costs(df, "LEAR Ensemble", f)
+    d, lo, hi, pv = du.block_bootstrap_diff(cost_b["cost_λ=1.0"], x, cost.index, 1.0, n_boot=200)
+    assert np.isclose(d, du.buyer_objective(cost_b["cost_λ=1.0"].values, 1.0) - tail.mean())
+    assert lo <= hi and 0 <= pv <= 1
+
+
+def test_block_hedge_lp_matches_grid():
+    df = du.load_market("NP").iloc[: 24 * 100]
+    s = du.block_scenarios(df, "DNN Ensemble")
+    # scenarios use residual sign p - p̂: forecast + residual of a past day
+    fc = df["DNN Ensemble"].values.reshape(-1, 24)
+    y = df["Real price"].values.reshape(-1, 24)
+    peak = np.isin(np.arange(24), du.PEAK_HOURS)
+    assert np.isclose(s["scen"][0, 0, 0], fc[90, peak].sum() + (y[0, peak] - fc[0, peak]).sum())
+    grid = np.linspace(0, 1, 41)
+    for i in range(0, len(s["dates"]), 3):
+        for lam in (0.0, 0.5, 1.0):
+            z, obj = du.solve_block_hedge(s["f"][i], s["scen"][i], lam)
+            assert np.isclose(obj, du.block_objective(z, s["f"][i], s["scen"][i], lam))
+            best = min(du.block_objective([a, b], s["f"][i], s["scen"][i], lam) for a in grid for b in grid)
+            assert obj <= best + 1e-6
